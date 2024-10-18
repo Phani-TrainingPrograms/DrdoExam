@@ -1,125 +1,108 @@
-import sqlite3
+import pymysql
 
 
-# Step 1: Create the database and table
-def create_database():
-    connection = sqlite3.connect('laptop_information.db')
-    cursor = connection.cursor()
-
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS LaptopInformation (
-        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-        SlNo INTEGER NOT NULL,
-        Model TEXT NOT NULL,
-        Brand TEXT NOT NULL,
-        Price REAL NOT NULL
+# Database connection
+def connect_db():
+    return pymysql.connect(
+        host='localhost',
+        user='root',
+        password='cdacacts',
+        database='laptop'
     )
-    ''')
-
-    connection.commit()
-    connection.close()
 
 
-# Step 2: Insert data into the table
-def insert_laptop(sl_no, model, brand, price):
-    connection = sqlite3.connect('laptop_information.db')
-    cursor = connection.cursor()
+# Create a new laptop entry
+def create_laptop():
+    serial = input("Enter serial number: ")
+    model = input("Enter model: ")
+    brand = input("Enter brand: ")
+    price = float(input("Enter price: "))
 
-    cursor.execute('''
-    INSERT INTO LaptopInformation (SlNo, Model, Brand, Price) VALUES (?, ?, ?, ?)
-    ''', (sl_no, model, brand, price))
-
-    connection.commit()
-    connection.close()
-
-
-# Step 3: Fetch and display all laptop information
-def fetch_laptop_info():
-    connection = sqlite3.connect('laptop_information.db')
-    cursor = connection.cursor()
-
-    cursor.execute('SELECT * FROM LaptopInformation')
-    rows = cursor.fetchall()
-
-    connection.close()
-    return rows
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO laptop_info (serial, model, brand, price) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (serial, model, brand, price))
+        connection.commit()
+        print("Laptop added successfully!")
+    finally:
+        connection.close()
 
 
-# Step 4: Update laptop information
-def update_laptop(id, sl_no, model, brand, price):
-    connection = sqlite3.connect('laptop_information.db')
-    cursor = connection.cursor()
-
-    cursor.execute('''
-    UPDATE LaptopInformation
-    SET SlNo = ?, Model = ?, Brand = ?, Price = ?
-    WHERE Id = ?
-    ''', (sl_no, model, brand, price, id))
-
-    connection.commit()
-    connection.close()
-
-
-# Step 5: Delete laptop information
-def delete_laptop(id):
-    connection = sqlite3.connect('laptop_information.db')
-    cursor = connection.cursor()
-
-    cursor.execute('DELETE FROM LaptopInformation WHERE Id = ?', (id,))
-
-    connection.commit()
-    connection.close()
+# Read all laptops
+def read_laptops():
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM laptop_info"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            for row in result:
+                print(row)
+    finally:
+        connection.close()
 
 
-# Step 6: Menu-driven interface
+# Update a laptop entry
+def update_laptop():
+    laptop_id = int(input("Enter the ID of the laptop to update: "))
+    serial = input("Enter new serial number: ")
+    model = input("Enter new model: ")
+    brand = input("Enter new brand: ")
+    price = float(input("Enter new price: "))
+
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            sql = "UPDATE laptop_info SET serial=%s, model=%s, brand=%s, price=%s WHERE id=%s"
+            cursor.execute(sql, (serial, model, brand, price, laptop_id))
+        connection.commit()
+        print("Laptop updated successfully!")
+    finally:
+        connection.close()
+
+
+# Delete a laptop entry
+def delete_laptop():
+    laptop_id = int(input("Enter the ID of the laptop to delete: "))
+
+    connection = connect_db()
+    try:
+        with connection.cursor() as cursor:
+            sql = "DELETE FROM laptop_info WHERE id=%s"
+            cursor.execute(sql, (laptop_id,))
+        connection.commit()
+        print("Laptop deleted successfully!")
+    finally:
+        connection.close()
+
+
+# Menu-driven program
 def menu():
     while True:
-        print("\nMenu:")
+        print("\n--- Laptop Information Management ---")
         print("1. Add Laptop")
         print("2. View Laptops")
         print("3. Update Laptop")
         print("4. Delete Laptop")
         print("5. Exit")
 
-        choice = input("Choose an option: ")
+        choice = input("Enter your choice (1-5): ")
 
         if choice == '1':
-            sl_no = int(input("Enter Serial Number: "))
-            model = input("Enter Model: ")
-            brand = input("Enter Brand: ")
-            price = float(input("Enter Price: "))
-            insert_laptop(sl_no, model, brand, price)
-            print("Laptop added successfully!")
-
+            create_laptop()
         elif choice == '2':
-            laptops = fetch_laptop_info()
-            print("\nLaptop Information:")
-            for laptop in laptops:
-                print(laptop)
-
+            read_laptops()
         elif choice == '3':
-            id = int(input("Enter Laptop ID to update: "))
-            sl_no = int(input("Enter New Serial Number: "))
-            model = input("Enter New Model: ")
-            brand = input("Enter New Brand: ")
-            price = float(input("Enter New Price: "))
-            update_laptop(id, sl_no, model, brand, price)
-            print("Laptop updated successfully!")
-
+            update_laptop()
         elif choice == '4':
-            id = int(input("Enter Laptop ID to delete: "))
-            delete_laptop(id)
-            print("Laptop deleted successfully!")
-
+            delete_laptop()
         elif choice == '5':
             print("Exiting...")
             break
-
         else:
-            print("Invalid choice. Please try again.")
+            print("Invalid choice. Please enter a number between 1 and 5.")
 
 
-# Main script execution
 if __name__ == "__main__":
-    create_database()  # Create the database and table
-    menu()  # Run the menu-driven interface
+    menu()
